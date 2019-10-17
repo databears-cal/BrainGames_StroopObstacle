@@ -2,24 +2,52 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 
 public class SceneController : MonoBehaviour
 {
-    //public string setting;
-    public GameObject listener;
+    //Listener with IBM Watson scripts. DO NOT edit these scripts (from Watson Unity SDK)
+    [SerializeField] private GameObject listener;
+
+    //Parameter to change number of cards (questions). 
     public int numCardsDifficulty;
-   
+    
+    //Random color generated for current question. This variable is reused for every question.
     public string randomColor;
+
+    //Randomly generated number corresponding to randomColor in shuffled array.
     private int randomNumber;
 
-    [SerializeField] private MainCard originalCard;
+    //Color of the card. Now only has white (previously had 9 colors)
     [SerializeField] private Sprite[] images;
+
+    //Unused in this version. Previously used sprites instead of text for card colors.
     [SerializeField] private Sprite[] labels;
 
-    Dictionary<string, Color32> string_to_color;
+    //Dictionary matching 8 colors (strings) to their corresponding Color32.
+    private Dictionary<string, Color32> string_to_color;
 
-    public GameObject canvas;
+    //Colors closely related to red.
+    private Dictionary<string, Color32> redColors;
 
+    //Colors closely related to orange (unused as of now).
+    private Dictionary<string, Color32> orangeColors;
+
+    //Colors closely related to yellow (unused as of now).
+    private Dictionary<string, Color32> yellowColors;
+
+    //Colors closely related to green.
+    private Dictionary<string, Color32> greenColors;
+
+    //Colors closely related to blue.
+    private Dictionary<string, Color32> blueColors;
+
+    //Colors closely related to purple.
+    private Dictionary<string, Color32> purpleColors;
+
+    
+
+    //Used to control game flow.
     public enum State
     {
         Wait,
@@ -27,20 +55,33 @@ public class SceneController : MonoBehaviour
         Complete
     }
 
+    //Which state game is currently in.
     public State currentState;
 
+    //Array of numbers 0 to 7. This array will be shuffled every question.
     int[] numbers;
+
+    //Array of numbers 0 to 7. This array will be shuffled every question. One number will be picked to choose a color.
     int[] labels_num;
+
+    //Will store 4 random colors every question. These are the answer choices the player can choose from.
     string[] answer_choices;
 
+    //Current question number.
     public int currentProb;
 
+    //Score keeping script.
+    [SerializeField] TrackScore trackScore;
+
+    /*
+     * Occurs before the first update frame. Sets up the first question.
+    */
     private void Awake()
     {
         currentState = State.Wait;
         currentProb = 1;
 
-        Instantiate(canvas);
+        //Instantiate(canvas);
 
         string_to_color = new Dictionary<string, Color32>();
         setUpDictionary();
@@ -51,11 +92,20 @@ public class SceneController : MonoBehaviour
         
     }
 
+    /*
+     * Sets IBM Watson GameObject active.  
+    */
     private void Start()
     {
         listener.SetActive(true);
     }
 
+    /*
+     * Controls gameflow.
+     * When the state is State.Wait: do nothing (wait for HandleSpeechInput script).
+     * When the state is State.Next: HandleSpeechInput detected correct answer and shuffles cards for next question.
+     * When the state is State.Complete: game has been completed.
+    */
     private void Update()
     {
         switch (currentState)
@@ -73,6 +123,9 @@ public class SceneController : MonoBehaviour
         }
     }
 
+    /*
+     * Shuffle cards and setup new problem. End game if number if questions reached.
+     */
     public void Shuffle()
     {
 
@@ -88,6 +141,11 @@ public class SceneController : MonoBehaviour
         }            
     }
 
+    /*
+     * Shuffles an int array randomly. Used to shuffle numbers array and select a randomColor.
+     * Input: int array
+     * Output: shuffled int array
+     */
     private int[] ShuffleArray(int[] numbers)
     {
         int[] newArray = numbers.Clone() as int[];
@@ -101,6 +159,11 @@ public class SceneController : MonoBehaviour
         return newArray;
     }
 
+    /*
+     * Shuffles a string array randomly. Used to shuffle answer choices.
+     * Input: string array
+     * Output: shuffled string array
+    */
     private string[] ShuffleAnswers(string[] str)
     {
         string[] newArray = str.Clone() as string[];
@@ -114,6 +177,11 @@ public class SceneController : MonoBehaviour
         return newArray;
     }
 
+    /*
+     * Set up current question.
+     * Gets randomColor (answer) for question.
+     * Randomly assigns string on canvas and gives it a color corresponding to randomColor.
+    */
     private void setUpCurrentCard()
     {
         numbers = new int[] { 0, 1, 2, 3, 4, 5, 6, 7 };
@@ -122,22 +190,65 @@ public class SceneController : MonoBehaviour
         randomNumber = Random.Range(0, numbers.Length);
         randomColor = labels[randomNumber].name; //changed from images to labels    
 
+        randomColor = subsetColor(randomColor);
+
         labels_num = ShuffleArray(numbers);
         int label = labels_num[Random.Range(0, labels_num.Length)];
 
-        //originalCard.ChangeSprite(currentProb, label, images[0]);
-        //originalCard.Card_Label.GetComponent<SpriteRenderer>().sprite = labels[randomNumber];
         Text colorText = GameObject.FindGameObjectWithTag("Color").GetComponent<Text>();
         colorText.text = labels[Random.Range(0, numbers.Length)].name.Split('_')[0];
-        colorText.color = string_to_color[randomColor.Split('_')[0]];
+        colorText.color = string_to_color[randomColor];
         
-        //originalCard.setUp();
     }
 
+    /*
+     * Takes a color and if there is a related color, randomly select one from the dictionary (i.e. maroon is a subset of red).
+     * Input: randomColor string
+     * Output: new color string
+    */
+    private string subsetColor(string color)
+    {
+        string str = color.Split('_')[0];
+        if (str == "red")
+        {
+            int i = Random.Range(0, redColors.Count);
+            string[] keys = redColors.Keys.ToArray();
+            return keys[i];
+        }
+        else if (str == "green")
+        {
+            int i = Random.Range(0, greenColors.Count);
+            string[] keys = greenColors.Keys.ToArray();
+            return keys[i];
+
+        }
+        else if (str == "blue")
+        {
+            int i = Random.Range(0, blueColors.Count);
+            string[] keys = blueColors.Keys.ToArray();
+            return keys[i];
+
+        }
+        else if (str == "purple")
+        {
+            int i = Random.Range(0, purpleColors.Count);
+            string[] keys = purpleColors.Keys.ToArray();
+            return keys[i];
+
+        }
+        else
+        {
+            return str;
+        }
+    }
+
+    /*
+     * Places answer choices (randomly chosen already) on canvas. 
+    */
     private void assignAnswerChoices()
     {
         answer_choices = new string[4];
-        answer_choices[0] = randomColor.Split('_')[0];
+        answer_choices[0] = randomColor;
         for (int i = 1; i < 4; i++)
         {
             int rand = Random.Range(0, numbers.Length);
@@ -154,8 +265,12 @@ public class SceneController : MonoBehaviour
         GameObject.FindGameObjectWithTag("Option4").GetComponent<Text>().text = answer_choices[3];
     }
 
+    /*
+     * Assigns corresponding color to its Color32.
+    */
     private void setUpDictionary()
     {
+        //most primary colors except indigo and violet
         string_to_color.Add("red", Color.red);
         string_to_color.Add("orange", new Color32(255, 165, 0, 255));
         string_to_color.Add("yellow", Color.yellow);
@@ -164,35 +279,38 @@ public class SceneController : MonoBehaviour
         string_to_color.Add("purple", new Color32(178, 0, 254, 255));
         string_to_color.Add("brown", new Color32(165, 42, 42, 255));
         string_to_color.Add("black", Color.black);
+
+        //extra colors to add
+        blueColors.Add("blue", Color.blue);
+        blueColors.Add("cyan", Color.cyan);
+        blueColors.Add("aqua", new Color32(0, 201, 254, 1));
+
+        redColors.Add("red", Color.red);
+        redColors.Add("maroon", new Color32(128, 0, 0, 255));
+        redColors.Add("crimson", new Color32(220, 20, 60, 255));
+
+        greenColors.Add("green", Color.green);
+        greenColors.Add("lime", new Color32(0, 255, 0, 255));
+
+        purpleColors.Add("purple", new Color32(178, 0, 254, 255));
+        purpleColors.Add("violet", new Color32(238, 130, 238, 255));
+        purpleColors.Add("indigo", new Color32(75, 0, 130, 255));
+
     }
 
-    private void EndGame()
-    {
-        
-        TrackScore score = GameObject.FindGameObjectWithTag("ScoreKeeper").GetComponent<TrackScore>();
-        score.accuracy = score.correct / (score.correct + score.incorrect);
-        GameObject.FindGameObjectWithTag("ScoreKeeper").SetActive(false);
-        GameObject.FindGameObjectWithTag("StroopObstacle").SetActive(false);
-        listener.SetActive(false);
-    }
-
-    
     /*
-    private void Update()
+     * Game is complete. Finalize score and stop updating score. Set speech listener inactive.
+    */
+    private void EndGame()
     {        
-        if (currentState == State.Shuffled)
-        {
-            GameObject[] cards = GameObject.FindGameObjectsWithTag("Card");
-            foreach (GameObject card in cards)
-            {
-                MainCard script = card.GetComponent<MainCard>();
-                if (script.selected && script._color == randomColor)
-                {
-                    Debug.Log("Correct Selection");
-                    instruction.text = "Correct!";
-                    currentState = State.Wait;
-                }
-            }
-        }
-    }*/
+        //TrackScore score = GameObject.FindGameObjectWithTag("ScoreKeeper").GetComponent<TrackScore>();
+        float accuracy = trackScore.getCorrect() / (trackScore.getCorrect() + trackScore.getIncorrect());
+        trackScore.setAccuracy(accuracy);
+
+        trackScore.gameObject.SetActive(false);
+        listener.SetActive(false);
+
+        // GameObject.FindGameObjectWithTag("ScoreKeeper").SetActive(false);
+        GameObject.FindGameObjectWithTag("StroopObstacle").SetActive(false);
+    }
 }

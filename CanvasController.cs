@@ -5,22 +5,35 @@ using UnityEngine.UI;
 
 public class CanvasController : MonoBehaviour
 {
-    GameObject scene_controller;
-    public Text instruction;
+    //Controls flow of game.
+    [SerializeField] private GameObject scene_controller;
 
+    //Text that gives player instructions. Changes depending on their responses.
+    [SerializeField] private Text instruction;
+
+    //Wait for a response or stop when a color is received.
     private enum State
     {
         Wait,
         ColorReceived
     }
+    
+    //Current status of this gameobject.
     private State currentState = State.Wait;
 
-    // Start is called before the first frame update
+    /*
+     *Awake is called before the first frame update. Identifies SceneController
+    */
     void Awake()
     {
         scene_controller = GameObject.FindGameObjectWithTag("SceneController");
     }
 
+    /*
+     * Identifies random color SceneController selected and updates instruction. 
+     * This only happens once to intialize the first question. 
+     * Future questions handled by HandleSpeechInput script.
+    */
     private void Update()
     {
         if (currentState == State.Wait)
